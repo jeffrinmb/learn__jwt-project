@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import * as bcrypt from 'bcryptjs';
-import * as jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
 import User from '../model/User.js';
 import auth from '../middleware/Auth.js';
 import logger from '../config/Logger.js';
@@ -46,9 +46,9 @@ router.post('/login', async (req, res) => {
     if (!(email && password)) {
       res.status(400).send('All input is required');
     }
-    const emailValue = email.toLowerCase();
-    const user = await User.findOne({ email: emailValue });
-    if (user && (await bcrypt.compare(password, user.password))) {
+    const user = await User.findOne({ email: email.toLowerCase() });
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    if (user && isValidPassword) {
       const token = jwt.sign(
         { user_id: user._id, email },
         process.env.TOKEN_KEY,
@@ -58,8 +58,9 @@ router.post('/login', async (req, res) => {
       );
       user.token = token;
       res.status(200).json(user);
+    } else {
+      res.status(400).send('Invalid Credentials');
     }
-    res.status(400).send('Invalid Credentials');
   } catch (err) {
     logger.error(err);
   }
