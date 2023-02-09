@@ -1,18 +1,23 @@
-require('dotenv').config();
-require('./config/Database').connect();
-const express = require('express');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const User = require('./model/User');
-const auth = require('./middleware/auth');
+import * as dotenv from 'dotenv';
+import express from 'express';
+import * as bcrypt from 'bcryptjs';
+import * as jwt from 'jsonwebtoken';
+import connect from './config/Database.js';
+import User from './model/User.js';
+import auth from './middleware/Auth.js';
+import logger from './config/Logger.js';
+
+dotenv.config();
+connect();
 
 const app = express();
+
 app.use(express.json());
 
 app.post('/register', async (req, res) => {
   try {
-    const { first_name, last_name, email, password } = req.body;
-    if (!(email && password && first_name && last_name)) {
+    const { firstName, lastName, email, password } = req.body;
+    if (!(email && password && firstName && lastName)) {
       res.status(400).send('All input is required');
     }
     const emailValue = email.toLowerCase();
@@ -20,10 +25,10 @@ app.post('/register', async (req, res) => {
     if (oldUser) {
       return res.status(409).send('User Already Exist. Please Login');
     }
-    encryptedPassword = await bcrypt.hash(password, 10);
+    const encryptedPassword = await bcrypt.hash(password, 10);
     const user = await User.create({
-      first_name,
-      last_name,
+      firstName,
+      lastName,
       email: email.toLowerCase(),
       password: encryptedPassword,
     });
@@ -37,8 +42,9 @@ app.post('/register', async (req, res) => {
     user.token = token;
     res.status(201).json(user);
   } catch (err) {
-    console.log(err);
+    logger.error(err);
   }
+  return 0;
 });
 
 app.post('/login', async (req, res) => {
@@ -62,7 +68,7 @@ app.post('/login', async (req, res) => {
     }
     res.status(400).send('Invalid Credentials');
   } catch (err) {
-    console.log(err);
+    logger.error(err);
   }
 });
 
@@ -70,4 +76,4 @@ app.post('/welcome', auth, (req, res) => {
   res.status(200).send('Welcome 🙌 ');
 });
 
-module.exports = app;
+export default app;
